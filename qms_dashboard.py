@@ -52,12 +52,12 @@ st.success("Data loaded successfully.")
 def count_open(df, col):
     if df.empty or col not in df.columns:
         return 0
-    return len(df[~df[col].str.lower().str.contains("closed")])
+    return len(df[df[col].str.lower() != "closed"])
 
 kpi1 = count_open(df_ncr, "status")
 kpi2 = count_open(df_capa, "status")
 kpi3 = len(df_risk[df_risk["risk score"] >= 15]) if "risk score" in df_risk.columns else 0
-kpi4 = count_open(df_insp, "pass/fail")
+kpi4 = len(df_insp[df_insp["pass/fail"].str.lower() == "fail"]) if "pass/fail" in df_insp.columns else 0
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Open NCRs", kpi1)
@@ -146,24 +146,27 @@ with tabs[1]:
 # ------------------ AUDITS ------------------
 with tabs[2]:
     st.subheader("Internal Audit Results")
-    if not df_aud.empty and "severity" in df_aud.columns:
-        sev = df_aud["severity"].value_counts().reset_index()
-        sev.columns = ["Category", "Count"]
+
+    if not df_aud.empty and "nc raised" in df_aud.columns:
+        nc = df_aud["nc raised"].value_counts().reset_index()
+        nc.columns = ["Category", "Count"]
+
         fig = px.bar(
-            sev,
+            nc,
             x="Category",
             y="Count",
-            title="Audit Severity",
+            title="Audit NC Raised (Yes/No)",
             color="Category",
             color_discrete_map={
-                "minor": "#f1c40f",
-                "major": "#e67e22",
-                "critical": "#e74c3c"
+                "Yes": "#e74c3c",
+                "No": "#2ecc71"
             }
         )
+        fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.warning("Audit data missing 'Severity' column.")
+        st.warning("Audit data missing 'NC Raised' column.")
+
     st.dataframe(df_aud, use_container_width=True)
 
 # ------------------ INSPECTIONS ------------------
