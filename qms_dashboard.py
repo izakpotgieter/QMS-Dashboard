@@ -12,13 +12,13 @@ st.sidebar.title("Aklin Carbide QMS Portal")
 st.sidebar.caption("ISO 9001:2015 Analytics Dashboard")
 
 # ------------------ LOAD DATA AUTOMATICALLY ------------------
-uploaded = "STAGE1_QMS_TEMP.xlsx"   # Load from GitHub repo
+uploaded = "STAGE1_QMS_TEMP.xlsx"   # Load from repo
 
 try:
     xls = pd.ExcelFile(uploaded)
     st.success("QMS Excel file loaded successfully.")
 except:
-    st.error("Could not load STAGE1_QMS_TEMP.xlsx. Make sure the file is in the GitHub repo.")
+    st.error("Could not load STAGE1_QMS_TEMP.xlsx. Make sure the file is in the same folder as this script.")
     st.stop()
 
 # ------------------ TITLE ------------------
@@ -28,7 +28,7 @@ st.caption("Executive overview of risks, NCR/CAPA, audits, inspections, supplier
 # ------------------ LOAD SHEETS ------------------
 def load(name):
     try:
-        df = xls.parse(name)
+        df = xls.parse(name, header=0)  # force first row as header
         df.columns = df.columns.str.strip().str.lower()
         return df
     except:
@@ -55,7 +55,7 @@ def count_open(df, col):
 kpi1 = count_open(df_ncr, "status")
 kpi2 = count_open(df_capa, "status")
 kpi3 = len(df_risk[df_risk["risk score"] >= 15]) if "risk score" in df_risk.columns else 0
-kpi4 = len(df_insp[df_insp["result"].str.lower() == "fail"]) if "result" in df_insp.columns else 0
+kpi4 = len(df_insp[df_insp["result"].str.lower() == "fail"]) if ("result" in df_insp.columns and not df_insp.empty) else 0
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Open NCRs", kpi1)
@@ -190,7 +190,6 @@ with tabs[3]:
         )
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
-
     else:
         st.warning("Inspection data missing 'Result' column.")
 
@@ -202,7 +201,6 @@ with tabs[4]:
 
     if not df_sup.empty and "band" in df_sup.columns:
         df_sup["band"] = df_sup["band"].fillna("Unspecified")
-
         band = df_sup["band"].value_counts().reset_index()
         band.columns = ["Category", "Count"]
 
@@ -216,7 +214,6 @@ with tabs[4]:
         )
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
-
     else:
         st.warning("Supplier data missing 'Band' column.")
 
