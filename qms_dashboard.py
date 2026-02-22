@@ -3,8 +3,6 @@ import pandas as pd
 import plotly.express as px
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-import datetime as dt
-import os
 
 st.set_page_config(page_title="QMS Dashboard", layout="wide")
 
@@ -57,7 +55,7 @@ def count_open(df, col):
 kpi1 = count_open(df_ncr, "status")
 kpi2 = count_open(df_capa, "status")
 kpi3 = len(df_risk[df_risk["risk score"] >= 15]) if "risk score" in df_risk.columns else 0
-kpi4 = len(df_insp[df_insp["pass/fail"].str.lower() == "fail"]) if "pass/fail" in df_insp.columns else 0
+kpi4 = len(df_insp[df_insp["result"].str.lower() == "fail"]) if "result" in df_insp.columns else 0
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Open NCRs", kpi1)
@@ -172,9 +170,11 @@ with tabs[2]:
 # ------------------ INSPECTIONS ------------------
 with tabs[3]:
     st.subheader("Inspection Performance")
-    if not df_insp.empty and "pass/fail" in df_insp.columns:
-        pf = df_insp["pass/fail"].value_counts().reset_index()
+
+    if not df_insp.empty and "result" in df_insp.columns:
+        pf = df_insp["result"].value_counts().reset_index()
         pf.columns = ["Category", "Count"]
+
         fig = px.bar(
             pf,
             x="Category",
@@ -182,22 +182,30 @@ with tabs[3]:
             title="Inspection Results",
             color="Category",
             color_discrete_map={
+                "Pass": "#2ecc71",
+                "Fail": "#e74c3c",
                 "pass": "#2ecc71",
                 "fail": "#e74c3c"
             }
         )
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
+
     else:
-        st.warning("Inspection data missing 'Pass/Fail' column.")
+        st.warning("Inspection data missing 'Result' column.")
+
     st.dataframe(df_insp, use_container_width=True)
 
 # ------------------ SUPPLIERS ------------------
 with tabs[4]:
     st.subheader("Supplier Performance")
+
     if not df_sup.empty and "band" in df_sup.columns:
+        df_sup["band"] = df_sup["band"].fillna("Unspecified")
+
         band = df_sup["band"].value_counts().reset_index()
         band.columns = ["Category", "Count"]
+
         fig = px.bar(
             band,
             x="Category",
@@ -208,8 +216,10 @@ with tabs[4]:
         )
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
+
     else:
         st.warning("Supplier data missing 'Band' column.")
+
     st.dataframe(df_sup, use_container_width=True)
 
 # ------------------ TRAINING ------------------
